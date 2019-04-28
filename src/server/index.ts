@@ -3,6 +3,8 @@ import { Express, Request, Response } from "express";
 import * as mongoose from "mongoose";
 import webAPIRouter from "./presentation";
 import * as bodyParser from "body-parser";
+import * as passport from "passport";
+import { passportWithJWTStrategy } from "../../config/passport";
 
 const app: Express = express();
 const dbURI: string = require("../../config/keys").mongoURI;
@@ -12,10 +14,11 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch(error => console.log(`MongoDB connection failed: ${error}`));
 
-app.use(bodyParser.urlencoded({extended: false}));
-app.use(bodyParser.json())
-
-app.get("/", (req: Request, res: Response) => res.send("Hello World success"));
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+//Use Passport middle ware
+app.use(passport.initialize());
+passportWithJWTStrategy(passport);
 
 app.use("/api", webAPIRouter);
 

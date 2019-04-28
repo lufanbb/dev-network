@@ -4,13 +4,14 @@ import * as bcrypt from "bcryptjs";
 import gravatar = require("gravatar");
 import * as jwt from "jsonwebtoken";
 import config = require("../../../config/keys");
+import passport = require("passport");
 
 const router = Router();
-
-router.get("/test", (req: Request, res: Response) =>
-  res.json({ msg: "User route works" })
-);
-
+/**
+ * @route       : /api/user/register
+ * @description : Register a user with email and password
+ * @access      : public
+ */
 router.post("/register", (req: Request, res: Response) => {
   const email: string = req.body.email;
   UserModel.findOne({ email }).then(user => {
@@ -47,6 +48,11 @@ router.post("/register", (req: Request, res: Response) => {
   });
 });
 
+/**
+ * @route       : /api/user/login
+ * @description : User login by email and password
+ * @access      : public
+ */
 router.post("/login", (req: Request, res: Response) => {
   const email: User["email"] = req.body.email;
   const password: User["password"] = req.body.password;
@@ -59,15 +65,20 @@ router.post("/login", (req: Request, res: Response) => {
     } else {
       bcrypt.compare(password, user.password).then(isValidPassword => {
         if (isValidPassword) {
-          const jwtPayload = {id: user._id, email: user.email, avatar: user.avatar};
+          const jwtPayload = {
+            id: user._id,
+            email: user.email,
+            avatar: user.avatar
+          };
           const secret = config.jwtTokenSecret;
-          jwt.sign(jwtPayload, secret, {expiresIn: "1h"}, (error, token) => {
-            if(error) {
-              return res.status(500).json({passwor: `Error creating token ${error}`});
+          jwt.sign(jwtPayload, secret, { expiresIn: "1h" }, (error, token) => {
+            if (error) {
+              return res
+                .status(500)
+                .json({ passwor: `Error creating token ${error}` });
             }
             return res.json({ success: true, token: `Bearer ${token}` });
-          })
-          
+          });
         } else {
           return res.status(400).json({ password: "Password is not valid" });
         }
@@ -75,5 +86,18 @@ router.post("/login", (req: Request, res: Response) => {
     }
   });
 });
+
+/**
+ * @route       : /api/user/current
+ * @description : Get current user by jwt token
+ * @access      : private
+ */
+router.get(
+  "/current",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    return res.json({ msg: "success" });
+  }
+);
 
 export default router;
