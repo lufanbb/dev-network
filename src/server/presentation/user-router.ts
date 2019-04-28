@@ -5,6 +5,7 @@ import gravatar = require("gravatar");
 import * as jwt from "jsonwebtoken";
 import config = require("../../../config/keys");
 import passport = require("passport");
+import { JWTPayload } from "../../common/authentication";
 
 const router = Router();
 /**
@@ -65,7 +66,7 @@ router.post("/login", (req: Request, res: Response) => {
     } else {
       bcrypt.compare(password, user.password).then(isValidPassword => {
         if (isValidPassword) {
-          const jwtPayload = {
+          const jwtPayload: JWTPayload = {
             id: user._id,
             email: user.email,
             avatar: user.avatar
@@ -96,7 +97,11 @@ router.get(
   "/current",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    return res.json({ msg: "success" });
+    return res.json({
+      name: req.user.name,
+      email: req.user.email,
+      avatar: req.user.avatar
+    });
   }
 );
 

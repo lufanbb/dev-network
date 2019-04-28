@@ -1,5 +1,5 @@
 import * as mongoose from "mongoose";
-import { Document, Model, Schema } from "mongoose";
+import { Document, Schema } from "mongoose";
 
 export interface User extends Document {
   name: string;
