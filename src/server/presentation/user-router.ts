@@ -1,11 +1,16 @@
 import { Router, Request, Response } from "express";
-import { UserModel, User } from "../infrastructure/model/User";
+import { UserModel, User } from "../infrastructure";
 import * as bcrypt from "bcryptjs";
 import gravatar = require("gravatar");
 import * as jwt from "jsonwebtoken";
 import config = require("../../../config/keys");
 import passport = require("passport");
 import { JWTPayload } from "../../common/authentication";
+import {
+  validateLogin,
+  validateRegistration,
+  UserValidationError
+} from "../business";
 
 const router = Router();
 /**
@@ -14,6 +19,14 @@ const router = Router();
  * @access      : public
  */
 router.post("/register", (req: Request, res: Response) => {
+  const { errors, isValid }: UserValidationError = validateRegistration(
+    req.body
+  );
+
+  if (!isValid) {
+    return res.status(400).json(errors);
+  }
+
   const email: string = req.body.email;
   UserModel.findOne({ email }).then(user => {
     const avatar = gravatar.url(email, {
@@ -55,14 +68,19 @@ router.post("/register", (req: Request, res: Response) => {
  * @access      : public
  */
 router.post("/login", (req: Request, res: Response) => {
+  const { errors, isValid }: UserValidationError = validateLogin(req.body);
+
+  if (!isValid) {
+    res.status(400).json(errors);
+  }
+
   const email: User["email"] = req.body.email;
   const password: User["password"] = req.body.password;
 
   UserModel.findOne({ email }).then((user: User) => {
     if (!user) {
-      return res
-        .status(404)
-        .json({ email: `User with email ${email} not found!` });
+      errors.email = `User with email ${email} not found!`;
+      return res.status(404).json(errors);
     } else {
       bcrypt.compare(password, user.password).then(isValidPassword => {
         if (isValidPassword) {
@@ -74,14 +92,14 @@ router.post("/login", (req: Request, res: Response) => {
           const secret = config.jwtTokenSecret;
           jwt.sign(jwtPayload, secret, { expiresIn: "1h" }, (error, token) => {
             if (error) {
-              return res
-                .status(500)
-                .json({ passwor: `Error creating token ${error}` });
+              errors.password = `Error creating token ${error}`;
+              return res.status(500).json(errors);
             }
             return res.json({ success: true, token: `Bearer ${token}` });
           });
         } else {
-          return res.status(400).json({ password: "Password is not valid" });
+          errors.password = "Password is not valid";
+          return res.status(400).json(errors);
         }
       });
     }
